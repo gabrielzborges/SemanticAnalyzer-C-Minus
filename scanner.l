@@ -5,6 +5,9 @@
 %option yylineno
 %{
 #include "parser.h"
+#include "tables.h"
+
+extern LitTable *lit_tb;
 %}
 
 /* LABELS */
@@ -86,7 +89,7 @@ UNKNOWN .
 
 {NUM}     {return NUM; }
 {ID}      {return ID; }
-{STRING}  {return STRING; }
+{STRING}  {yylval = add_literal(lit_tb, yytext); return STRING; }
 
 {SPACE}   {}
 {COMMENT} {}
