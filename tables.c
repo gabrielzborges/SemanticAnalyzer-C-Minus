@@ -120,20 +120,6 @@ void free_sym_table(SymTable* st) {
 
 // Func table
 // -----------------------------------------------------------------------------------
-// #define SYMBOL_FUNC_MAX_SIZE 128
-// #define SYMBOL_FUNC_TABLE_MAX_SIZE 100
-
-// typedef struct {
-//   char name[SYMBOL_FUNC_MAX_SIZE];
-//   int line;
-//   int arity;
-// } Func_Entry;
-
-// struct sym_func_table {
-//     Func_Entry t[SYMBOL_FUNC_TABLE_MAX_SIZE];
-//     int size;
-// };
-
 SymFuncTable* create_sym_func_table() {
     SymFuncTable *sft = malloc(sizeof *sft);
     sft->size = 0;

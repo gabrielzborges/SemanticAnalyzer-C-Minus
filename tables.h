@@ -80,6 +80,8 @@ void free_sym_table(SymTable* st);
 // -1 for array's reference in a func's param, greater 0 for an arrays (store the array's length)).
 #define SYMBOL_FUNC_MAX_SIZE 128
 #define SYMBOL_FUNC_TABLE_MAX_SIZE 100
+
+// It's necessary to define the struct here in the header
 typedef struct {
   char name[SYMBOL_FUNC_MAX_SIZE];
   int line;
