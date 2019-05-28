@@ -1,2 +1,7 @@
+in/
+out3/
+testes/
+.vscode/
 *.zip
 *.pdf
+*.sh

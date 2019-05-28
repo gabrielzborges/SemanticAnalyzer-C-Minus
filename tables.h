@@ -78,7 +78,17 @@ void free_sym_table(SymTable* st);
 // For simplicity, the table is implemented as a sequential list.
 // This table stores the variable name, the declaration line, scope and var's size (0 for int,
 // -1 for array's reference in a func's param, greater 0 for an arrays (store the array's length)).
-struct sym_func_table;
+#define SYMBOL_FUNC_MAX_SIZE 128
+#define SYMBOL_FUNC_TABLE_MAX_SIZE 100
+typedef struct {
+  char name[SYMBOL_FUNC_MAX_SIZE];
+  int line;
+  int arity;
+} Func_Entry;
+struct sym_func_table {
+    Func_Entry t[SYMBOL_FUNC_TABLE_MAX_SIZE];
+    int size;
+};
 typedef struct sym_func_table SymFuncTable;
 
 // Creates an empty symbol table.

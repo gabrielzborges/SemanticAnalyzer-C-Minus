@@ -67,7 +67,7 @@ struct sym_table {
 };
 
 SymTable* create_sym_table() {
-    SymTable *st = malloc(sizeof * st);
+    SymTable *st = malloc(sizeof *st);
     st->size = 0;
     return st;
 }
@@ -108,7 +108,7 @@ int get_size(SymTable* st, int i) {
 }
 
 void print_sym_table(SymTable* st) {
-    printf("Symbols table:\n");
+    printf("Variables table:\n");
     for (int i = 0; i < st->size; i++) {
          printf("Entry %d -- name: %s, line: %d, scope: %d, size: %d\n", i, get_name(st, i), get_line(st, i), get_scope(st, i), get_size(st, i));
     }
@@ -120,22 +120,22 @@ void free_sym_table(SymTable* st) {
 
 // Func table
 // -----------------------------------------------------------------------------------
-#define SYMBOL_FUNC_MAX_SIZE 128
-#define SYMBOL_FUNC_TABLE_MAX_SIZE 100
+// #define SYMBOL_FUNC_MAX_SIZE 128
+// #define SYMBOL_FUNC_TABLE_MAX_SIZE 100
 
-typedef struct {
-  char name[SYMBOL_FUNC_MAX_SIZE];
-  int line;
-  int arity;
-} Func_Entry;
+// typedef struct {
+//   char name[SYMBOL_FUNC_MAX_SIZE];
+//   int line;
+//   int arity;
+// } Func_Entry;
 
-struct sym_func_table {
-    Func_Entry t[SYMBOL_FUNC_TABLE_MAX_SIZE];
-    int size;
-};
+// struct sym_func_table {
+//     Func_Entry t[SYMBOL_FUNC_TABLE_MAX_SIZE];
+//     int size;
+// };
 
 SymFuncTable* create_sym_func_table() {
-    SymFuncTable *sft = malloc(sizeof * sft);
+    SymFuncTable *sft = malloc(sizeof *sft);
     sft->size = 0;
     return sft;
 }
@@ -171,7 +171,7 @@ int get_func_arity(SymFuncTable* sft, int i) {
 }
 
 void print_sym_func_table(SymFuncTable* sft) {
-    printf("Symbols table:\n");
+    printf("Functions table:\n");
     for (int i = 0; i < sft->size; i++) {
          printf("Entry %d -- name: %s, line: %d, arity: %d\n", i, get_func_name(sft, i), get_func_line(sft, i), get_func_arity(sft, i));
     }

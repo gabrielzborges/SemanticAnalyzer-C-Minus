@@ -7,19 +7,30 @@
 %define parse.lac full
 
 %{
-    #include <stdio.h>
-    #include "parser.h"
-    #include "tables.h"
-    extern int yylineno; //sera utilizado na funcao yyerror
-    extern char *yytext;
+  #include <stdio.h>
+  #include <stdlib.h>
+  #include <string.h>
+  #include "parser.h"
+  #include "tables.h"
+  extern int yylineno; //sera utilizado na funcao yyerror
+  extern char *yytext;
+  extern char yycopy[100];
 
-    int yylex(void);
-    void yyerror (char const *s);
-    void var_verify();
-    void var_new();
+  int yylex(void);
+  void yyerror (char const *s);
+  void var_verify();
+  void var_new();
+  void arity_verify();
+  void func_verify();
+  void func_new();
 
-    LitTable *lit_tb;
-    SymTabe *sym_tb;
+  char func_name[100];  //vetor auxiliar para guardar o nome de uma funcao
+  int f_idx_in_table;
+  int actual_arity = 0;
+  int actual_scope = 0;
+  LitTable *lit_tb;
+  SymTable *sym_tb;
+  SymFuncTable *func_tb;
 %}
 
 //tokens
@@ -39,8 +50,8 @@
 program: func_decl_list;
 
 func_decl_list: 
-  func_decl_list func_decl 
-| func_decl
+  func_decl_list func_decl {actual_scope++;} 
+| func_decl {actual_scope++;}
 ;
 
 func_decl: 
@@ -48,7 +59,7 @@ func_decl:
 ;
 
 func_header: 
-  ret_type ID LPAREN params RPAREN
+  ret_type ID {strcpy(func_name, yytext);} LPAREN params RPAREN {func_new(func_name, actual_arity);}
 ;
 
 func_body: 
@@ -71,7 +82,7 @@ ret_type:
 ;
 
 params: 
-  VOID 
+  VOID
 | param_list
 ;
 
@@ -81,8 +92,8 @@ param_list:
 ;
 
 param: 
-  INT ID 
-| INT ID LBRACK RBRACK
+  INT ID {actual_arity++; var_new(yycopy, 0, actual_scope);}
+| INT ID {actual_arity++; var_new(yycopy, -1, actual_scope);} LBRACK RBRACK
 ;
 
 var_decl_list: 
@@ -91,8 +102,8 @@ var_decl_list:
 ;
 
 var_decl: 
-  INT ID SEMI 
-| INT ID LBRACK NUM RBRACK SEMI
+  INT ID {var_new(yycopy, 0, actual_scope);} SEMI 
+| INT ID LBRACK NUM {var_new(yycopy, atoi(yytext), actual_scope);} RBRACK SEMI
 ;
 
 stmt_list: 
@@ -113,9 +124,9 @@ assign_stmt:
 ;
 
 lval: 
-  ID 
+  ID {var_verify(yycopy, actual_scope);} 
 | ID LBRACK NUM RBRACK 
-| ID LBRACK ID RBRACK
+| ID LBRACK ID {var_verify(yycopy, actual_scope);} RBRACK
 ;
 
 if_stmt: 
@@ -151,11 +162,11 @@ output_call:
 ;
 
 write_call: 
-  WRITE LPAREN STRING RPAREN
+  WRITE LPAREN STRING {add_literal(lit_tb, yytext);} RPAREN
 ;
 
 user_func_call: 
-  ID LPAREN opt_arg_list RPAREN
+  ID {func_verify(yycopy);} LPAREN opt_arg_list RPAREN {arity_verify(func_tb, f_idx_in_table, actual_arity);}
 ;
 
 opt_arg_list: 
@@ -164,8 +175,8 @@ opt_arg_list:
 ;
 
 arg_list: 
-  arg_list COMMA arith_expr 
-| arith_expr
+  arg_list COMMA arith_expr {actual_arity++;}
+| arith_expr {actual_arity++;}
 ;
 
 bool_expr: 
@@ -195,39 +206,83 @@ void yyerror (char const *s){
         printf("PARSE ERROR (%d): %s\n", yylineno, s);
 }
 
-void var_verify(){
-        int index = lookup_var(sym_tb, yytext);
-        if(index == -1){
-                printf("SEMANTIC ERROR (%d): variable '%s' was not declared.\n",
-                    yylineno, yytext);
-                exit(1);
-        }
+//funcao que checa se a variavel ja foi declarada
+void var_verify(char* var_name, int scope){
+  int index = lookup_var(sym_tb, var_name, scope);
+  if(index == -1){
+    printf("SEMANTIC ERROR (%d): variable '%s' was not declared.\n",
+      yylineno, yycopy);
+    exit(1);
+  }
 }
 
-void var_new(){
-        int index = lookup_var(sym_tb, yytext);
-        if(index != -1){
-                printf("SEMANTIC ERROR (%d): variable '%s' already declared at line %d.\n",
-                    yylineno, yytext, get_line(st, idx));
-                exit(1);
-        }
-        add_var(sym_tb, yytext, yylineno);
+//funcao para guardar uma nova variavel
+void var_new(char* var_name, int size, int scope){
+  int index = lookup_var(sym_tb, var_name, scope);
+  if(index != -1){
+    printf("SEMANTIC ERROR (%d): variable '%s' already declared at line %d.\n",
+      yylineno, var_name, get_line(sym_tb, index));
+    exit(1);
+  }
+  add_var(sym_tb, var_name, yylineno, scope, size);
+}
+
+//imprime o erro caso nao seja a mesma aridade, caso contrario faz nada
+void arity_verify(SymFuncTable *sft, int index, int arity, char* fname){
+    if(sft->t[index].arity != arity){
+      printf("SEMANTIC ERROR (%d): function '%s' was called with %d arguments but declared with %d parameters.\n", 
+        yylineno, yycopy, arity, get_func_arity(func_tb, index));
+      exit(1);
+    }
+    actual_arity = 0;
+}
+
+//funcao que checa se a funcao foi declarada
+void func_verify(char *fname){
+  int index = lookup_func(func_tb, fname);
+  if(index == -1){
+    printf("SEMANTIC ERROR (%d): function '%s' was not declared.\n",
+      yylineno, yycopy);
+    exit(1);
+  }
+  f_idx_in_table = index;
+}
+
+//funcao para guardar uma nova funcao
+void func_new(char* fname, int arity){
+  int index = lookup_func(func_tb, fname);
+  if(index != -1){
+    printf("SEMANTIC ERROR (%d): function '%s' already declared at line %d.\n",
+      yylineno, fname, get_func_line(func_tb, index));
+    exit(1);
+  }
+  add_func(func_tb, fname, yylineno, arity);
+  actual_arity = 0;
 }
 
 int main(void){
-    lit_tb = create_lit_table();
-    sym_tb  = create_sym_table();
+  //criando as tabelas
+  lit_tb = create_lit_table();
+  sym_tb  = create_sym_table();
+  func_tb = create_sym_func_table();
 
-    yyparse();
+  int parse_success = yyparse();
+  
+  if(parse_success == 0){  //se o parse foi executado com sucesso
+    printf("PARSE SUCCESSFUL!\n");
 
-    printf("\n\n");
+    //printando as tabelas
+    printf("\n");
     print_lit_table(lit_tb);
     printf("\n\n");
     print_sym_table(sym_tb);
     printf("\n\n");
+    print_sym_func_table(func_tb);
 
+    //liberando as tabelas
     free_lit_table(lit_tb);
     free_sym_table(sym_tb);
-
-    return 0;
+    free_sym_func_table(func_tb);
+  }
+  return 0;
 }

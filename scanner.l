@@ -6,8 +6,8 @@
 %{
 #include "parser.h"
 #include "tables.h"
-
-extern LitTable *lit_tb;
+#include <string.h>
+char yycopy[100];
 %}
 
 /* LABELS */
@@ -88,8 +88,8 @@ UNKNOWN .
 {RBRACE}  {return RBRACE; }
 
 {NUM}     {return NUM; }
-{ID}      {return ID; }
-{STRING}  {yylval = add_literal(lit_tb, yytext); return STRING; }
+{ID}      {strcpy(yycopy, yytext); return ID; }
+{STRING}  {return STRING; }
 
 {SPACE}   {}
 {COMMENT} {}
